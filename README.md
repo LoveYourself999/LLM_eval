@@ -62,3 +62,12 @@ python -m llama_cpp.server \
 # 4) Run evals
 python -m eval.multiturn_eval fast-model qwen-1p5b
 python -m eval.mtbench101_eval fast-model qwen-1p5b --limit 260
+
+#3-run-mmlu-pro-eval
+```bash
+cd ~/semantic-router/src/training/model_eval
+run mmlu_pro_vllm_eval.py
+```bash
+python mmlu_pro_vllm_eval.py \
+  --endpoint http://localhost:8003/v1 \
+  --samples-per-category 10

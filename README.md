@@ -109,13 +109,13 @@ judge:
 
 ### 3-Run mmlu-pro-eval
 
-# We will work at this dir in this guide
 Python packages for evaluation scripts:
 
 - From the repo root: matplotlib in requirements.txt
 - From /src/training/model_eval: requirements.txt
 
 ```bash
+# We will work at this dir in this guide
 cd /src/training/model_eval
 pip install -r requirements.txt
 ```

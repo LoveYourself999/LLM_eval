@@ -11,7 +11,7 @@ The goal is to make it easy to compare two or more models (e.g., `fast-model` vs
 
 ## Contents
 
-- [Quick start](#quick-start)
+- [Prerequisites](###Prerequisites)
 - [Architecture](#architecture)
 - [1) Serve models locally](#1-serve-models-locally)
 - [2) Configure endpoints](#2-configure-endpoints)
@@ -24,15 +24,15 @@ The goal is to make it easy to compare two or more models (e.g., `fast-model` vs
 
 ---
 
-## Quick start
-
 ### Prerequisites
 - Python 3.11+
 - An OpenAI-compatible server per model (we use `llama_cpp.server`)
 - A judge server (recommend Prometheus)
 
-### Typical flow
+### Serve models locally
 ```bash
+# In three terminals, run:
+
 # 1) Start judge (Prometheus)
 python -m llama_cpp.server \
   --host 127.0.0.1 --port 8001 \
@@ -59,15 +59,90 @@ python -m llama_cpp.server \
   --n_ctx 2048 \
   --model_alias qwen-1p5b
 
-# 4) Run evals
+#  4) Run evals
 python -m eval.multiturn_eval fast-model qwen-1p5b
 python -m eval.mtbench101_eval fast-model qwen-1p5b --limit 260
 
-#3-run-mmlu-pro-eval
+```
+---
+### Architecture
+At a high level:
+
+1. Dataset → Messages
+
+- Each benchmark converts raw dataset records into OpenAI chat messages=[{role, content}, ...].
+
+2. Model Inference
+
+- eval/client.py calls your model endpoint:
+
+- POST {endpoint}/chat/completions
+
+3. Scoring
+
+- MMLU‑Pro: parse the multiple-choice letter and compute accuracy.
+
+- MultiTurn: LLM-as-judge score per test case.
+
+- MT‑Bench‑101: LLM-as-judge score per dialogue item.
+
+4. Aggregation
+
+- Metrics aggregated by domain/ability/task and saved to JSON/JSONL.
+
+
+### 2) Configure endpoints
+Edit eval/config.py (or your YAML->CONFIG equivalent). Example:
+```python
+models:
+  fast-model:
+    endpoint: "http://127.0.0.1:8003/v1"
+    model: "fast-model"
+  qwen-1p5b:
+    endpoint: "http://127.0.0.1:8004/v1"
+    model: "qwen-1p5b"
+
+judge:
+  endpoint: "http://127.0.0.1:8001/v1"
+  model: "judge-model"
+```
+
+### 3-Run mmlu-pro-eval
+
+# We will work at this dir in this guide
+Python packages for evaluation scripts:
+
+- From the repo root: matplotlib in requirements.txt
+- From /src/training/model_eval: requirements.txt
+
 ```bash
-cd ~/semantic-router/src/training/model_eval
+cd /src/training/model_eval
+pip install -r requirements.txt
+```
+
 run mmlu_pro_vllm_eval.py
 ```bash
 python mmlu_pro_vllm_eval.py \
   --endpoint http://localhost:8003/v1 \
   --samples-per-category 10
+```
+
+### 4) Run multiturn_eval
+What it measures
+A small ability-focused suite (your curated YAML) for:
+
+- perceptivity (context memory, anaphora, topic shift…),
+- adaptability (self-correction, rephrasing…),
+- interactivity (clarification questions, guardrails…).
+
+How it runs
+For each case:
+1. Send the turns to the model (OpenAI chat format).
+2. Collect the model reply.
+3. Ask the judge to score it.
+4. Aggregate mean score by ability and save eval/model_profiles.json.
+
+In /vllm, run:
+```bash
+python -m eval.multiturn_eval fast-model qwen-1p5b
+```

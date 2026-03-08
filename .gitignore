@@ -1,0 +1,12 @@
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pt
+*.bin
+*.model
+*.ckpt
+datasets/
+logs/
+outputs/
+.cache/

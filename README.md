@@ -1,4 +1,4 @@
-# Local Eval Pipeline (MMLU‑Pro → MultiTurn → MT‑Bench‑101)
+# Local Eval Pipeline (MMLU‑Pro → MultiTurn)
 
 This repo contains a small, **fully local** evaluation pipeline for OpenAI-compatible model endpoints (e.g., `llama_cpp.server`, vLLM OpenAI server). It runs:
 1) **MMLU‑Pro** (single-turn multiple choice accuracy),

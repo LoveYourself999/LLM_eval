@@ -1,0 +1,43 @@
+# Multilingual test case words (not spelling errors)
+Ignora
+adresse
+exemple
+ist
+alle
+Meu
+meu
+hava
+tread
+ot
+Sie
+# NPM package names (not spelling errors)
+devlop
+trough
+# Intentional typos for typo augmentation training (ft_linear_lora_consistency.py)
+teh
+adn
+taht
+wiht
+tihs
+hvae
+thier
+tehre
+tehse
+thsoe
+waht
+wehn
+wehre
+whcih
+expalin
+calculte
+follwing
+strcture
+# Legal and medical terms (training data)
+lien
+liens
+infarction
+# Kubernetes operators (not spelling errors)
+NotIn
+notin
+# Cloud provider acronyms (not spelling errors)
+AKS

@@ -1,0 +1,113 @@
+{
+  "models": [
+    {
+      "name": "qwen3-0.6B",
+      "capability": {
+        "mmlu": {
+          "business": 0.3333333333333333,
+          "law": 0.0,
+          "psychology": 0.3333333333333333,
+          "biology": 0.6666666666666666,
+          "chemistry": 0.0,
+          "history": 0.0,
+          "other": 0.0,
+          "health": 0.3333333333333333,
+          "economics": 0.3333333333333333,
+          "math": 0.6666666666666666,
+          "physics": 0.3333333333333333,
+          "computer science": 0.3333333333333333,
+          "philosophy": 0.0,
+          "engineering": 0.3333333333333333
+        },
+        "arc": 0.0
+      },
+      "dialogue": {
+        "perceptivity": 0.0,
+        "adaptability": 0.0,
+        "interactivity": 0.0
+      },
+      "research": {
+        "quality": 0.0,
+        "factual_ratio": 0.0
+      },
+      "ops": {
+        "latency_ms_p50": 0.0,
+        "cost_per_1k_tokens": 0.0,
+        "safety_score": 0.0
+      }
+    },
+    {
+      "name": "fast-model",
+      "capability": {
+        "mmlu": {},
+        "arc": 0.0
+      },
+      "dialogue": {
+        "perceptivity": 0.6333333333333333,
+        "adaptability": 0.6571428571428571,
+        "interactivity": 0.72
+      },
+      "research": {
+        "quality": 0.0,
+        "factual_ratio": 0.0
+      },
+      "ops": {
+        "latency_ms_p50": 0.0,
+        "cost_per_1k_tokens": 0.0,
+        "safety_score": 0.0
+      }
+    },
+    {
+      "name": "qwen-1p5b",
+      "capability": {
+        "mmlu": {},
+        "arc": 0.0
+      },
+      "dialogue": {
+        "perceptivity": 1.0,
+        "adaptability": 1.0,
+        "interactivity": 1.0
+      },
+      "research": {
+        "quality": 0.0,
+        "factual_ratio": 0.0
+      },
+      "ops": {
+        "latency_ms_p50": 0.0,
+        "cost_per_1k_tokens": 0.0,
+        "safety_score": 0.0
+      }
+    },
+    {
+      "name": "phi-4",
+      "capability": {
+        "mmlu": {},
+        "arc": 0.0
+      },
+      "dialogue": {
+        "perceptivity": 1.0,
+        "adaptability": 1.0,
+        "interactivity": 1.0
+      },
+      "research": {
+        "quality": 0.0,
+        "factual_ratio": 0.0
+      },
+      "ops": {
+        "latency_ms_p50": 0.0,
+        "cost_per_1k_tokens": 0.0,
+        "safety_score": 0.0
+      }
+    }
+  ],
+  "phi-4": {
+    "perceptivity": 0.567,
+    "adaptability": 0.629,
+    "interactivity": 0.64
+  },
+  "qwen-1p5b": {
+    "perceptivity": 0.767,
+    "adaptability": 0.771,
+    "interactivity": 0.8
+  }
+}

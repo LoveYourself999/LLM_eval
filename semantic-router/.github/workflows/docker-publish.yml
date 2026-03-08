@@ -1,0 +1,242 @@
+name: Create and publish Docker images
+
+on:
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      tag_suffix:
+        description: "Custom tag suffix for the Docker image"
+        required: false
+        type: string
+        default: ""
+      is_nightly:
+        description: "Whether this is a nightly build"
+        required: false
+        type: boolean
+        default: false
+      use_cross_compilation:
+        description: "Use cross-compilation instead of emulation for ARM64"
+        required: false
+        type: boolean
+        default: true
+  push:
+    branches: ["main"]
+    paths:
+      - ".github/workflows/docker-publish.yml"
+      - "tools/docker/Dockerfile*"
+      - "candle-binding/**"
+      - "src/**"
+      - "e2e/testing/llm-katan/**"
+      - "dashboard/**"
+      - "src/vllm-sr/**"
+  pull_request:
+    paths:
+      - ".github/workflows/docker-publish.yml"
+      - "tools/docker/Dockerfile*"
+      - "candle-binding/**"
+      - "src/**"
+      - "e2e/testing/llm-katan/**"
+      - "dashboard/**"
+      - "src/vllm-sr/**"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Build multi-architecture Docker images using buildx native multi-platform support
+  build_multiarch:
+    if: github.repository == 'vllm-project/semantic-router' && !github.event.pull_request.draft
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        image: [extproc, llm-katan, vllm-sr]
+      fail-fast: false
+
+    steps:
+      # Standard disk cleanup for all images
+      - name: Free up disk space
+        run: |
+          echo "Before cleanup:"
+          df -h
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo docker image prune --all --force
+          echo "After cleanup:"
+          df -h
+
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: |
+            image=moby/buildkit:latest
+            network=host
+
+      - name: Set up QEMU for multi-platform builds
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Enhanced Rust caching for extproc builds
+      - name: Cache Rust dependencies (extproc)
+        if: matrix.image == 'extproc'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            candle-binding/target/
+            ~/.rustup/
+          key: ${{ runner.os }}-cargo-multiarch-${{ hashFiles('candle-binding/Cargo.toml') }}-${{ hashFiles('candle-binding/Cargo.lock') }}-${{ hashFiles('candle-binding/src/**/*.rs') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-multiarch-${{ hashFiles('candle-binding/Cargo.toml') }}-${{ hashFiles('candle-binding/Cargo.lock') }}-
+            ${{ runner.os }}-cargo-multiarch-${{ hashFiles('candle-binding/Cargo.toml') }}-
+            ${{ runner.os }}-cargo-multiarch-
+            ${{ runner.os }}-cargo-
+
+      # Python caching for llm-katan builds
+      - name: Cache Python dependencies (llm-katan)
+        if: matrix.image == 'llm-katan'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            e2e/testing/llm-katan/.venv
+          key: ${{ runner.os }}-pip-multiarch-${{ hashFiles('e2e/testing/llm-katan/requirements.txt', 'e2e/testing/llm-katan/pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-multiarch-
+            ${{ runner.os }}-pip-
+
+      # Node.js and Go caching for dashboard builds
+      - name: Cache Node.js dependencies (dashboard)
+        if: matrix.image == 'dashboard'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            dashboard/frontend/node_modules
+          key: ${{ runner.os }}-node-multiarch-${{ hashFiles('dashboard/frontend/package.json', 'dashboard/frontend/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-multiarch-
+            ${{ runner.os }}-node-
+
+      - name: Cache Go dependencies (dashboard)
+        if: matrix.image == 'dashboard'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+            dashboard/backend/go.sum
+          key: ${{ runner.os }}-go-multiarch-${{ hashFiles('dashboard/backend/go.mod', 'dashboard/backend/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-multiarch-
+            ${{ runner.os }}-go-
+
+      - name: Generate date tag for nightly builds
+        id: date
+        if: inputs.is_nightly == true
+        run: echo "date_tag=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
+
+      - name: Set lowercase repository owner
+        run: echo "REPOSITORY_OWNER_LOWER=$(echo $GITHUB_REPOSITORY_OWNER | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
+      - name: Set build parameters
+        id: build-params
+        run: |
+          if [ "${{ matrix.image }}" = "extproc" ]; then
+            echo "context=." >> $GITHUB_OUTPUT
+            echo "dockerfile=./tools/docker/Dockerfile.extproc" >> $GITHUB_OUTPUT
+          elif [ "${{ matrix.image }}" = "llm-katan" ]; then
+            echo "context=./e2e/testing/llm-katan" >> $GITHUB_OUTPUT
+            echo "dockerfile=./e2e/testing/llm-katan/Dockerfile" >> $GITHUB_OUTPUT
+          elif [ "${{ matrix.image }}" = "dashboard" ]; then
+            echo "context=." >> $GITHUB_OUTPUT
+            echo "dockerfile=./dashboard/backend/Dockerfile" >> $GITHUB_OUTPUT
+          elif [ "${{ matrix.image }}" = "vllm-sr" ]; then
+            echo "context=." >> $GITHUB_OUTPUT
+            echo "dockerfile=./src/vllm-sr/Dockerfile" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate tags
+        id: tags
+        run: |
+          REPO_LOWER=$(echo $GITHUB_REPOSITORY_OWNER | tr '[:upper:]' '[:lower:]')
+
+          if [ "${{ inputs.is_nightly }}" = "true" ]; then
+            TAG="nightly-${{ steps.date.outputs.date_tag }}"
+          else
+            if [ "${{ github.event_name }}" != "pull_request" ]; then
+              TAG="${{ github.sha }}"
+            else
+              TAG="pr-${{ github.event.number }}"
+            fi
+          fi
+
+          # Generate tags for multi-arch image
+          TAGS="ghcr.io/${REPO_LOWER}/semantic-router/${{ matrix.image }}:${TAG}"
+
+          # Add latest tag for non-nightly, non-PR builds
+          if [ "${{ inputs.is_nightly }}" != "true" ] && [ "${{ github.event_name }}" != "pull_request" ]; then
+            TAGS="${TAGS},ghcr.io/${REPO_LOWER}/semantic-router/${{ matrix.image }}:latest"
+          fi
+
+          echo "tags=${TAGS}" >> $GITHUB_OUTPUT
+
+      - name: Additional cleanup for llm-katan (large Python packages)
+        if: matrix.image == 'llm-katan'
+        run: |
+          echo "Freeing up more space for llm-katan build..."
+          sudo apt-get clean
+          sudo rm -rf /var/lib/apt/lists/*
+          df -h
+
+      - name: Build and push ${{ matrix.image }} multi-platform Docker image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ steps.build-params.outputs.context }}
+          file: ${{ steps.build-params.outputs.dockerfile }}
+          # Build for both platforms in a single build (PR only builds amd64 for speed)
+          platforms: ${{ github.event_name == 'pull_request' && 'linux/amd64' || 'linux/amd64,linux/arm64' }}
+          push: ${{ github.event_name != 'pull_request' }}
+          load: ${{ github.event_name == 'pull_request' }}
+          tags: ${{ steps.tags.outputs.tags }}
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
+            CARGO_BUILD_JOBS=${{ github.event_name == 'pull_request' && '8' || '16' }}
+            CARGO_INCREMENTAL=1
+            RUSTC_WRAPPER=""
+            CARGO_NET_GIT_FETCH_WITH_CLI=true
+            BUILDKIT_PROGRESS=plain
+
+      - name: Build summary
+        if: always()
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then
+            PLATFORMS="${{ github.event_name == 'pull_request' && 'linux/amd64' || 'linux/amd64,linux/arm64' }}"
+            echo "::notice title=Build Success::${{ matrix.image }} built successfully for ${PLATFORMS}"
+            echo "### Build Summary for ${{ matrix.image }}" >> $GITHUB_STEP_SUMMARY
+            echo "- **Platforms**: ${PLATFORMS}" >> $GITHUB_STEP_SUMMARY
+            echo "- **Tags**: ${{ steps.tags.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "::error title=Build Failed::${{ matrix.image }} build failed"
+          fi

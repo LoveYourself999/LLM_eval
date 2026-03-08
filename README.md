@@ -2,8 +2,7 @@
 
 This repo contains a small, **fully local** evaluation pipeline for OpenAI-compatible model endpoints (e.g., `llama_cpp.server`, vLLM OpenAI server). It runs:
 1) **MMLU‑Pro** (single-turn multiple choice accuracy),
-2) a lightweight **MultiTurn** suite (ability-focused regression tests),
-3) **MT‑Bench‑101** (multi-turn dialogues scored by an LLM judge, e.g., Prometheus).
+2) a lightweight **MultiTurn** suite (multi-turn dialogues scored by an LLM judge, e.g., Prometheus)
 
 The goal is to make it easy to compare two or more models (e.g., `fast-model` vs `qwen-1p5b`) with consistent, reproducible settings.
 
@@ -84,9 +83,7 @@ At a high level:
 
 - MMLU‑Pro: parse the multiple-choice letter and compute accuracy.
 
-- MultiTurn: LLM-as-judge score per test case.
-
-- MT‑Bench‑101: LLM-as-judge score per dialogue item.
+- MultiTurn: Each benchmark item is scored once by an LLM judge at the test-case level: the judge sees the full multi-turn dialogue context plus the model’s final reply, then assigns a single score for that case rather than separate scores for each turn.
 
 4. Aggregation
 
@@ -154,6 +151,9 @@ python mmlu_pro_vllm_eval.py \
   --endpoint http://localhost:8003/v1 \
   --samples-per-category 10
 ```
+<img width="1232" height="599" alt="image" src="https://github.com/user-attachments/assets/d18cad1a-dc48-4cdb-b238-70f306264748" />
+
+
 ## 4) Multi-turn Eval Benchmark
 A lightweight benchmark for evaluating how well a model handles **multi-turn conversations**.
 Reference: https://github.com/mtbench101/mt-bench-101
@@ -246,3 +246,5 @@ Results for Qwen:
 #### Visualization for comparison
 
 <img width="630" height="470" alt="image" src="https://github.com/user-attachments/assets/f5af598d-6103-43cc-a86e-45c0fb28c2ec" />
+
+Summary: The results shows that Phi-4 leads Qwen clearly on the subject benchmark, with especially strong gains in biology and history, while Qwen performs better on the multi-turn benchmark, scoring higher across perceptivity, adaptability, and interactivity.

@@ -109,9 +109,35 @@ judge:
   model: "judge-model"
 ```
 
-### 3) Run mmlu-pro-eval
+### 3) MMLU-Pro Eval
+Reference: https://github.com/vllm-project/semantic-router/blob/main/src/training/model_eval/mmlu_pro_vllm_eval.py
 
-Python packages for evaluation scripts:
+A simple evaluation script for measuring model performance on **MMLU-Pro**, a more challenging multiple-choice benchmark designed to test broad knowledge and stronger reasoning than standard MMLU.
+
+This evaluation is useful for comparing models on:
+- domain knowledge,
+- difficult multiple-choice reasoning,
+- prompt adherence,
+- answer formatting reliability,
+- broad academic and professional subject coverage.
+
+---
+
+## What this benchmark does
+
+`mmlu-pro-eval` runs a model on MMLU-Pro questions and computes accuracy over the dataset or a selected subset.
+
+For each question, the evaluator:
+
+1. Builds a prompt from the question and answer choices.
+2. Sends the prompt to the target model.
+3. Extracts the model’s predicted answer.
+4. Compares it against the gold label.
+5. Aggregates results by subject and overall accuracy.
+
+The output gives you a quick view of how well a model handles difficult knowledge-intensive multiple-choice tasks.
+
+#### Python packages for evaluation scripts:
 
 - From the repo root: matplotlib in requirements.txt
 - From /src/training/model_eval: requirements.txt
@@ -130,6 +156,7 @@ python mmlu_pro_vllm_eval.py \
 ```
 ## 4) Multi-turn Eval Benchmark
 A lightweight benchmark for evaluating how well a model handles **multi-turn conversations**.
+Reference: https://github.com/mtbench101/mt-bench-101
 
 This benchmark measures whether a model can:
 - remember earlier context,

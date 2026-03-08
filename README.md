@@ -4,7 +4,7 @@ This repo contains a small, **fully local** evaluation pipeline for OpenAI-compa
 1) **MMLU‑Pro** (single-turn multiple choice accuracy),
 2) a lightweight **MultiTurn** suite (multi-turn dialogues scored by an LLM judge, e.g., Prometheus)
 
-The goal is to make it easy to compare two or more models (e.g., `fast-model` vs `qwen-1p5b`) with consistent, reproducible settings.
+The goal is to make it easy to compare two or more models (e.g., phi-4 vs qwen) with consistent, reproducible settings.
 
 ---
 
